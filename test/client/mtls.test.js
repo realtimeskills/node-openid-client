@@ -17,11 +17,13 @@ const issuer = new Issuer({
   token_endpoint: 'https://op.example.com/token',
   introspection_endpoint: 'https://op.example.com/token/introspect',
   revocation_endpoint: 'https://op.example.com/token/revoke',
+  pushed_authorization_request_endpoint: 'https://op.example.com/par',
   mtls_endpoint_aliases: {
     userinfo_endpoint: 'https://mtls.op.example.com/me',
     token_endpoint: 'https://mtls.op.example.com/token',
     introspection_endpoint: 'https://mtls.op.example.com/token/introspect',
     revocation_endpoint: 'https://mtls.op.example.com/token/revoke',
+    pushed_authorization_request_endpoint: 'https://mtls.op.example.com/par',
   },
 });
 
@@ -190,5 +192,15 @@ describe('mutual-TLS', () => {
     } catch (err) {
       expect(err.message).to.eql('mutual-TLS certificate and key not set');
     }
+  });
+
+  it('will use an available mtls alias automatically when key/pfx is provided despite not being required to', async function () {
+    nock('https://mtls.op.example.com')
+      .post('/par')
+      .reply(201, { expires_in: 30, request_uri: 'urn:example:random' });
+
+    this.jwtAuthClientNoSenderConstraining[custom.http_options] = () => ({ key, cert });
+
+    await this.jwtAuthClientNoSenderConstraining.pushedAuthorizationRequest({});
   });
 });
